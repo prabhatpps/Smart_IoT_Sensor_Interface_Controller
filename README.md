@@ -243,7 +243,7 @@ make lint
 ### **🔧 Technical Specifications**
 ```systemverilog
 // System Configuration
-parameter SYSTEM_CLK_FREQ = 100_000_000;  // 100MHz
+parameter SYSTEM_CLK_FREQ = 100_000_000;   // 100MHz
 parameter I2C_CLK_FREQ    = 100_000;       // 100kHz  
 parameter SPI_CLK_FREQ    = 1_000_000;     // 1MHz
 parameter UART_BAUD_RATE  = 115200;        // Standard rate
