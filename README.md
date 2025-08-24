@@ -114,39 +114,39 @@ make unit_tests  # Individual module verification
 Smart_IoT_Sensor_Interface_Controller/
 ├── 📂 rtl/                          # RTL source files
 │   ├── 📂 common/                   # Shared modules
-│   │   ├── iot_sensor_pkg.sv       # System parameters & types
-│   │   ├── sync_fifo.sv            # Parameterized FIFO
-│   │   └── priority_arbiter.sv     # Intelligent arbitration
+│   │   ├── iot_sensor_pkg.sv        # System parameters & types
+│   │   ├── sync_fifo.sv             # Parameterized FIFO
+│   │   └── priority_arbiter.sv      # Intelligent arbitration
 │   ├── 📂 sensor_interfaces/        # Protocol implementations
-│   │   ├── i2c_master.sv           # I2C master controller
-│   │   ├── spi_master.sv           # SPI master controller
+│   │   ├── i2c_master.sv            # I2C master controller
+│   │   ├── spi_master.sv            # SPI master controller
 │   │   ├── temperature_sensor_interface.sv
 │   │   ├── humidity_sensor_interface.sv
 │   │   └── motion_sensor_interface.sv
-│   ├── 📂 packet_framer/           # Data processing
-│   │   ├── packet_framer.sv        # Packet assembly engine
-│   │   └── serial_transmitter.sv   # UART transmitter
-│   ├── 📂 power_controller/        # Power management
-│   │   └── power_controller.sv     # Clock gating & power modes
-│   └── iot_sensor_controller.sv    # Top-level integration
-├── 📂 testbench/                   # Verification environment
-│   ├── 📂 unit_tests/             # Individual module tests
+│   ├── 📂 packet_framer/            # Data processing
+│   │   ├── packet_framer.sv         # Packet assembly engine
+│   │   └── serial_transmitter.sv    # UART transmitter
+│   ├── 📂 power_controller/         # Power management
+│   │   └── power_controller.sv      # Clock gating & power modes
+│   └── iot_sensor_controller.sv     # Top-level integration
+├── 📂 testbench/                    # Verification environment
+│   ├── 📂 unit_tests/               # Individual module tests
 │   │   ├── tb_sync_fifo.sv
 │   │   └── tb_priority_arbiter.sv
-│   └── 📂 integration_tests/      # System-level tests
+│   └── 📂 integration_tests/        # System-level tests
 │       └── tb_iot_sensor_controller.sv
-├── 📂 scripts/                    # Automation & build
-│   ├── create_project.tcl         # Vivado project creation
-│   ├── run_simulation.tcl         # Automated simulation
-│   ├── run_synthesis.tcl          # Synthesis with reports
-│   ├── vivado_runner.sh          # Cross-platform scripts
-│   └── vivado_runner.bat         # Windows batch support
-├── 📂 docs/                      # Documentation
+├── 📂 scripts/                      # Automation & build
+│   ├── create_project.tcl           # Vivado project creation
+│   ├── run_simulation.tcl           # Automated simulation
+│   ├── run_synthesis.tcl            # Synthesis with reports
+│   ├── vivado_runner.sh             # Cross-platform scripts
+│   └── vivado_runner.bat            # Windows batch support
+├── 📂 docs/                         # Documentation
 │   ├── Technical_Specification.md
 │   └── comprehensive-project-report.md
-├── 📄 Makefile                   # Multi-tool build system
-├── 📄 README.md                  # This file
-└── 📄 VIVADO_README.md          # Vivado-specific guide
+├── 📄 Makefile                      # Multi-tool build system
+├── 📄 README.md                     # This file
+└── 📄 VIVADO_README.md              # Vivado-specific guide
 ```
 
 ---
@@ -489,9 +489,9 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 💡 **Specialization:** RTL Design, Digital Systems, Embedded IoT
 
 ### **🌐 Connect**
-- **GitHub:** [@your-username](https://github.com/prabhatpps)
+- **GitHub:** [@prabhatpps](https://github.com/prabhatpps)
 - **LinkedIn:** [Prabhat Pandey](https://linkedin.com/in/prabhat-pandey-23b765252/)
-- **Email:** [your.email@example.com](mailto:prpandey192@gmail.com)
+- **Email:** [prpandey192@gmail.com](mailto:prpandey192@gmail.com)
 
 ### **📧 Professional Inquiries**
 - **Technical Questions:** Open GitHub Issues for project-related questions
