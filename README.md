@@ -2,9 +2,9 @@
 
 > **A professional-grade RTL implementation of a multi-sensor IoT interface controller with intelligent arbitration, packet framing, and power management.**
 
-**Author:** [Prabhat Pandey](https://github.com/prabhatpps) | B.Tech ECE, VIT Vellore
-**Project Type:** Advanced Digital Design
-**Created:** August 2025 | **Last Updated:** August 25, 2025
+**Author:** [Prabhat Pandey](https://github.com/prabhatpps) | B.Tech ECE, VIT Vellore  
+**Project Type:** Advanced Digital Design  
+**Created:** August 2025 | **Last Updated:** August 25, 2025  
 
 ---
 
