@@ -100,21 +100,21 @@ The architecture follows a **layered, modular approach** inspired by OSI network
 └─────────────────┘    └──────────────────┘    └─────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                    Data Link Layer                               │
-├─────────────────┬──────────────────┬─────────────────────────────┤
-│  Priority       │   FIFO Buffering │   Flow Control              │
-│  Arbitration    │   Overflow Mgmt  │   Back-pressure             │
-└─────────────────┴──────────────────┴─────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│                    Data Link Layer                             │
+├────────────────────┬────────────────────┬──────────────────────┤
+│  Priority          │   FIFO Buffering   │   Flow Control       │
+│  Arbitration       │   Overflow Mgmt    │   Back-pressure      │
+└────────────────────┴────────────────────┴──────────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Sensor Interface Layer                       │
-├────────────────┬────────────────────┬───────────────────────────┤
-│ Temperature    │    Humidity        │       Motion              │
-│ I2C Interface  │   I2C Interface    │    SPI Interface          │
-│ TMP102-like    │   SHT30-like       │    ADXL345-like           │
-└────────────────┴────────────────────┴───────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│                    Sensor Interface Layer                      │
+├───────────────────┬───────────────────────┬────────────────────┤
+│ Temperature       │    Humidity           │    Motion          │
+│ I2C Interface     │    I2C Interface      │    SPI Interface   │
+│ TMP102-like       │    SHT30-like         │    ADXL345-like    │
+└───────────────────┴───────────────────────┴────────────────────┘
 ```
 
 ### 2.2 Design Pattern Implementation
