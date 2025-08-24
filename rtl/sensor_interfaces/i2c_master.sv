@@ -1,20 +1,15 @@
 //=============================================================================
-// I2C Master Interface Module
-// Author: Prabhat Pandey
-// Date: August 24, 2025  
-// Description: I2C master for temperature and humidity sensor communication
+// I2C Master Controller
+// Supports standard I2C read and write operations
 //=============================================================================
+
+`timescale 1ns/1ps
 
 import iot_sensor_pkg::*;
 
-module i2c_master #(
-    parameter int SYSTEM_CLK_FREQ = 100_000_000,
-    parameter int I2C_CLK_FREQ = 100_000
-)(
-    // System interface
+module i2c_master (
     input  logic        clk,
     input  logic        rst_n,
-    input  logic        enable,
 
     // Control interface
     input  logic        start_transaction,
@@ -25,202 +20,209 @@ module i2c_master #(
     output logic        transaction_done,
     output logic        ack_error,
 
-    // I2C physical interface
-    output logic        scl,
-    inout  logic        sda
+    // I2C bus
+    inout  wire         scl,
+    inout  wire         sda
 );
 
-    // Clock divider for I2C clock generation
-    localparam int CLK_DIVIDER = SYSTEM_CLK_FREQ / (4 * I2C_CLK_FREQ);
+    // State machine
+    i2c_state_e current_state, next_state;
 
     // Internal signals
-    i2c_state_e current_state, next_state;
-    logic [15:0] clk_counter;
-    logic [3:0]  bit_counter;
-    logic [7:0]  shift_reg;
-    logic        sda_out, sda_enable;
-    logic        scl_enable;
-    logic        ack_bit;
+    logic [7:0] shift_reg;
+    logic [3:0] bit_count;
+    logic [15:0] clk_count;
+    logic scl_out, sda_out;
+    logic scl_oe, sda_oe;
+    logic sda_in;
 
-    // I2C clock generation
+    // Clock divider for I2C timing
+    localparam CLK_DIV = SYSTEM_CLK_FREQ / (2 * I2C_CLK_FREQ);
+
+    // Tristate control for I2C bus
+    assign scl = scl_oe ? scl_out : 1'bz;
+    assign sda = sda_oe ? sda_out : 1'bz;
+    assign sda_in = sda;
+
+    // State machine - sequential
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            clk_counter <= '0;
-        end else if (!enable) begin
-            clk_counter <= '0;
-        end else if (clk_counter >= CLK_DIVIDER - 1) begin
-            clk_counter <= '0;
-        end else begin
-            clk_counter <= clk_counter + 1'b1;
-        end
-    end
-
-    logic clk_pulse;
-    assign clk_pulse = (clk_counter == CLK_DIVIDER - 1);
-
-    // SCL generation
-    logic [1:0] scl_state;
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            scl_state <= 2'b00;
-        end else if (clk_pulse && scl_enable) begin
-            scl_state <= scl_state + 1'b1;
-        end else if (!scl_enable) begin
-            scl_state <= 2'b00;
-        end
-    end
-
-    assign scl = scl_enable ? (scl_state[1] || scl_state[0]) : 1'b1;
-
-    // SDA tristate control
-    assign sda = sda_enable ? sda_out : 1'bz;
-
-    // Main I2C state machine
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            current_state <= I2C_IDLE;
-        end else if (!enable) begin
             current_state <= I2C_IDLE;
         end else begin
             current_state <= next_state;
         end
     end
 
-    // State machine logic
+    // State machine - combinational
     always_comb begin
         next_state = current_state;
 
         case (current_state)
             I2C_IDLE: begin
-                if (start_transaction && enable) begin
+                if (start_transaction)
                     next_state = I2C_START;
-                end
             end
 
             I2C_START: begin
-                if (clk_pulse && scl_state == 2'b11) begin
+                if (clk_count == CLK_DIV)
                     next_state = I2C_ADDRESS;
-                end
             end
 
             I2C_ADDRESS: begin
-                if (clk_pulse && scl_state == 2'b01 && bit_counter == 4'd8) begin
+                if (bit_count == 7 && clk_count == CLK_DIV)
                     next_state = I2C_ACK;
-                end
             end
 
             I2C_ACK: begin
-                if (clk_pulse && scl_state == 2'b01) begin
-                    if (read_write_n) begin
+                if (clk_count == CLK_DIV) begin
+                    if (read_write_n)
                         next_state = I2C_READ;
-                    end else begin
-                        next_state = I2C_STOP;
-                    end
+                    else
+                        next_state = I2C_WRITE;
                 end
+            end
+
+            I2C_WRITE: begin
+                if (bit_count == 7 && clk_count == CLK_DIV)
+                    next_state = I2C_STOP;
             end
 
             I2C_READ: begin
-                if (clk_pulse && scl_state == 2'b01 && bit_counter == 4'd8) begin
+                if (bit_count == 7 && clk_count == CLK_DIV)
                     next_state = I2C_STOP;
-                end
             end
 
             I2C_STOP: begin
-                if (clk_pulse && scl_state == 2'b00) begin
+                if (clk_count == CLK_DIV)
                     next_state = I2C_IDLE;
-                end
             end
 
             default: next_state = I2C_IDLE;
         endcase
     end
 
-    // Control signals and data handling
+    // Control logic
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            bit_counter <= '0;
-            shift_reg <= '0;
+            scl_out <= 1'b1;
             sda_out <= 1'b1;
-            sda_enable <= 1'b0;
-            scl_enable <= 1'b0;
+            scl_oe <= 1'b0;
+            sda_oe <= 1'b0;
+            bit_count <= '0;
+            clk_count <= '0;
+            shift_reg <= '0;
+            read_data <= '0;
             transaction_done <= 1'b0;
             ack_error <= 1'b0;
-            read_data <= '0;
-            ack_bit <= 1'b0;
         end else begin
+            transaction_done <= 1'b0;
+
             case (current_state)
                 I2C_IDLE: begin
-                    bit_counter <= '0;
-                    sda_out <= 1'b1;
-                    sda_enable <= 1'b0;
-                    scl_enable <= 1'b0;
-                    transaction_done <= 1'b0;
-                    ack_error <= 1'b0;
+                    scl_oe <= 1'b0;
+                    sda_oe <= 1'b0;
+                    clk_count <= '0;
+                    bit_count <= '0;
                     if (start_transaction) begin
                         shift_reg <= {slave_addr, read_write_n};
                     end
                 end
 
                 I2C_START: begin
-                    scl_enable <= 1'b1;
-                    sda_enable <= 1'b1;
-                    if (clk_pulse) begin
-                        case (scl_state)
-                            2'b00: sda_out <= 1'b1;  // SDA high
-                            2'b01: sda_out <= 1'b1;  // SDA high, SCL rising
-                            2'b10: sda_out <= 1'b0;  // SDA falling (START)
-                            2'b11: sda_out <= 1'b0;  // SDA low
-                        endcase
+                    scl_oe <= 1'b1;
+                    sda_oe <= 1'b1;
+                    if (clk_count < CLK_DIV/2) begin
+                        scl_out <= 1'b1;
+                        sda_out <= 1'b0;  // START condition
+                        clk_count <= clk_count + 1;
+                    end else if (clk_count < CLK_DIV) begin
+                        scl_out <= 1'b0;
+                        clk_count <= clk_count + 1;
+                    end else begin
+                        clk_count <= '0;
                     end
                 end
 
                 I2C_ADDRESS: begin
-                    if (clk_pulse && scl_state == 2'b01) begin
-                        if (bit_counter < 8) begin
-                            sda_out <= shift_reg[7];
-                            shift_reg <= {shift_reg[6:0], 1'b0};
-                            bit_counter <= bit_counter + 1'b1;
-                        end
+                    if (clk_count < CLK_DIV/2) begin
+                        scl_out <= 1'b0;
+                        sda_out <= shift_reg[7-bit_count];
+                        clk_count <= clk_count + 1;
+                    end else if (clk_count < CLK_DIV) begin
+                        scl_out <= 1'b1;
+                        clk_count <= clk_count + 1;
+                    end else begin
+                        clk_count <= '0;
+                        bit_count <= bit_count + 1;
                     end
                 end
 
                 I2C_ACK: begin
-                    sda_enable <= 1'b0;  // Release SDA for ACK
-                    if (clk_pulse && scl_state == 2'b10) begin
-                        ack_bit <= sda;  // Sample ACK
-                    end else if (clk_pulse && scl_state == 2'b01) begin
-                        ack_error <= ack_bit;
-                        bit_counter <= '0;
-                        if (read_write_n) begin
-                            shift_reg <= '0;
-                        end
+                    if (clk_count < CLK_DIV/2) begin
+                        scl_out <= 1'b0;
+                        sda_oe <= 1'b0;  // Release SDA for ACK
+                        clk_count <= clk_count + 1;
+                    end else if (clk_count < CLK_DIV) begin
+                        scl_out <= 1'b1;
+                        if (!sda_in) ack_error <= 1'b0;
+                        else ack_error <= 1'b1;
+                        clk_count <= clk_count + 1;
+                    end else begin
+                        clk_count <= '0;
+                        bit_count <= '0;
+                        sda_oe <= 1'b1;
+                        if (read_write_n) shift_reg <= '0;
+                        else shift_reg <= write_data;
                     end
                 end
 
                 I2C_READ: begin
-                    sda_enable <= 1'b0;  // Release SDA for reading
-                    if (clk_pulse && scl_state == 2'b10) begin
-                        shift_reg <= {shift_reg[6:0], sda};
-                        bit_counter <= bit_counter + 1'b1;
-                    end else if (bit_counter == 8) begin
-                        read_data <= shift_reg;
-                        sda_enable <= 1'b1;
-                        sda_out <= 1'b1;  // NACK after read
+                    if (clk_count < CLK_DIV/2) begin
+                        scl_out <= 1'b0;
+                        sda_oe <= 1'b0;  // Release SDA for reading
+                        clk_count <= clk_count + 1;
+                    end else if (clk_count < CLK_DIV) begin
+                        scl_out <= 1'b1;
+                        shift_reg <= {shift_reg[6:0], sda_in};
+                        clk_count <= clk_count + 1;
+                    end else begin
+                        clk_count <= '0;
+                        bit_count <= bit_count + 1;
+                        if (bit_count == 7) begin
+                            read_data <= {shift_reg[6:0], sda_in};
+                        end
+                    end
+                end
+
+                I2C_WRITE: begin
+                    if (clk_count < CLK_DIV/2) begin
+                        scl_out <= 1'b0;
+                        sda_out <= shift_reg[7-bit_count];
+                        sda_oe <= 1'b1;
+                        clk_count <= clk_count + 1;
+                    end else if (clk_count < CLK_DIV) begin
+                        scl_out <= 1'b1;
+                        clk_count <= clk_count + 1;
+                    end else begin
+                        clk_count <= '0;
+                        bit_count <= bit_count + 1;
                     end
                 end
 
                 I2C_STOP: begin
-                    sda_enable <= 1'b1;
-                    if (clk_pulse) begin
-                        case (scl_state)
-                            2'b00: sda_out <= 1'b0;  // SDA low
-                            2'b01: sda_out <= 1'b0;  // SDA low, SCL rising  
-                            2'b10: sda_out <= 1'b1;  // SDA rising (STOP)
-                            2'b11: begin
-                                sda_out <= 1'b1;     // SDA high
-                                transaction_done <= 1'b1;
-                            end
-                        endcase
+                    scl_oe <= 1'b1;
+                    sda_oe <= 1'b1;
+                    if (clk_count < CLK_DIV/2) begin
+                        scl_out <= 1'b0;
+                        sda_out <= 1'b0;
+                        clk_count <= clk_count + 1;
+                    end else if (clk_count < CLK_DIV) begin
+                        scl_out <= 1'b1;
+                        sda_out <= 1'b1;  // STOP condition
+                        clk_count <= clk_count + 1;
+                        transaction_done <= 1'b1;
+                    end else begin
+                        clk_count <= '0;
                     end
                 end
             endcase

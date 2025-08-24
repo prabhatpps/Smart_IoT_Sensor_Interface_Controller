@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<ProcessHandle Version="1" Minor="0">
-    <Process Command=".planAhead." Owner="prabhat" Host="fedora" Pid="53206">
-    </Process>
-</ProcessHandle>

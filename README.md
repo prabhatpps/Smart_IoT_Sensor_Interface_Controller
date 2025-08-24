@@ -145,8 +145,7 @@ Smart_IoT_Sensor_Interface_Controller/
 │   ├── Technical_Specification.md
 │   └── comprehensive-project-report.md
 ├── 📄 Makefile                      # Multi-tool build system
-├── 📄 README.md                     # This file
-└── 📄 VIVADO_README.md              # Vivado-specific guide
+└── 📄 README.md                     # This file
 ```
 
 ---

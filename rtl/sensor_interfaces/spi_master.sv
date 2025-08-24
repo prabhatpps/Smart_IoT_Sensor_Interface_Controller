@@ -1,174 +1,139 @@
 //=============================================================================
-// SPI Master Interface Module  
-// Author: Prabhat Pandey
-// Date: August 24, 2025
-// Description: SPI master for motion sensor communication
+// SPI Master Controller
+// Supports configurable SPI mode and data transfer
 //=============================================================================
+
+`timescale 1ns/1ps
 
 import iot_sensor_pkg::*;
 
-module spi_master #(
-    parameter int SYSTEM_CLK_FREQ = 100_000_000,
-    parameter int SPI_CLK_FREQ = 1_000_000,
-    parameter int DATA_WIDTH = 16
-)(
-    // System interface
-    input  logic                    clk,
-    input  logic                    rst_n,
-    input  logic                    enable,
+module spi_master (
+    input  logic       clk,
+    input  logic       rst_n,
 
-    // Control interface  
-    input  logic                    start_transaction,
-    input  logic [DATA_WIDTH-1:0]   tx_data,
-    output logic [DATA_WIDTH-1:0]   rx_data,
-    output logic                    transaction_done,
+    // Control interface
+    input  logic       start_transaction,
+    input  logic [7:0] tx_data,
+    output logic [7:0] rx_data,
+    output logic       transaction_done,
 
-    // SPI physical interface
-    output logic                    sclk,
-    output logic                    mosi,
-    input  logic                    miso,
-    output logic                    cs_n
+    // SPI interface
+    output logic       spi_clk,
+    output logic       spi_mosi,
+    input  logic       spi_miso,
+    output logic       spi_cs
 );
 
-    // Clock divider for SPI clock generation
-    localparam int CLK_DIVIDER = SYSTEM_CLK_FREQ / (2 * SPI_CLK_FREQ);
+    // State machine
+    spi_state_e current_state, next_state;
 
     // Internal signals
-    spi_state_e current_state, next_state;
-    logic [15:0] clk_counter;
-    logic [4:0]  bit_counter; // Up to 32 bits
-    logic [DATA_WIDTH-1:0] tx_shift_reg, rx_shift_reg;
-    logic sclk_reg;
+    logic [7:0] tx_shift_reg;
+    logic [7:0] rx_shift_reg;
+    logic [2:0] bit_count;
+    logic [7:0] clk_count;
 
-    // SPI clock generation
+    // Clock divider for SPI timing
+    localparam CLK_DIV = SYSTEM_CLK_FREQ / (2 * SPI_CLK_FREQ);
+
+    // State machine - sequential
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            clk_counter <= '0;
-            sclk_reg <= 1'b0;
-        end else if (!enable || current_state == SPI_IDLE) begin
-            clk_counter <= '0;
-            sclk_reg <= 1'b0;
-        end else if (clk_counter >= CLK_DIVIDER - 1) begin
-            clk_counter <= '0;
-            sclk_reg <= ~sclk_reg;
-        end else begin
-            clk_counter <= clk_counter + 1'b1;
-        end
-    end
-
-    logic sclk_posedge, sclk_negedge;
-    logic sclk_prev;
-
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            sclk_prev <= 1'b0;
-        end else begin
-            sclk_prev <= sclk_reg;
-        end
-    end
-
-    assign sclk_posedge = sclk_reg && !sclk_prev;
-    assign sclk_negedge = !sclk_reg && sclk_prev;
-    assign sclk = (current_state == SPI_TRANSFER) ? sclk_reg : 1'b0;
-
-    // Main SPI state machine
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            current_state <= SPI_IDLE;
-        end else if (!enable) begin
             current_state <= SPI_IDLE;
         end else begin
             current_state <= next_state;
         end
     end
 
-    // State machine logic
+    // State machine - combinational
     always_comb begin
         next_state = current_state;
 
         case (current_state)
             SPI_IDLE: begin
-                if (start_transaction && enable) begin
-                    next_state = SPI_CS_LOW;
-                end
+                if (start_transaction)
+                    next_state = SPI_START;
             end
 
-            SPI_CS_LOW: begin
-                next_state = SPI_TRANSFER;
+            SPI_START: begin
+                if (clk_count >= CLK_DIV)
+                    next_state = SPI_TRANSFER;
             end
 
             SPI_TRANSFER: begin
-                if (bit_counter == DATA_WIDTH && sclk_negedge) begin
-                    next_state = SPI_CS_HIGH;
-                end
+                if (bit_count == 7 && clk_count >= CLK_DIV)
+                    next_state = SPI_FINISH;
             end
 
-            SPI_CS_HIGH: begin
-                next_state = SPI_IDLE;
+            SPI_FINISH: begin
+                if (clk_count >= CLK_DIV)
+                    next_state = SPI_IDLE;
             end
 
             default: next_state = SPI_IDLE;
         endcase
     end
 
-    // Control signals and data handling
+    // Control logic
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            bit_counter <= '0;
+            spi_cs <= 1'b1;
+            spi_clk <= 1'b0;
+            spi_mosi <= 1'b0;
+            bit_count <= '0;
+            clk_count <= '0;
             tx_shift_reg <= '0;
             rx_shift_reg <= '0;
-            cs_n <= 1'b1;
-            transaction_done <= 1'b0;
             rx_data <= '0;
+            transaction_done <= 1'b0;
         end else begin
+            transaction_done <= 1'b0;
+
             case (current_state)
                 SPI_IDLE: begin
-                    bit_counter <= '0;
-                    cs_n <= 1'b1;
-                    transaction_done <= 1'b0;
+                    spi_cs <= 1'b1;
+                    spi_clk <= 1'b0;
+                    clk_count <= '0;
+                    bit_count <= '0;
                     if (start_transaction) begin
                         tx_shift_reg <= tx_data;
-                        rx_shift_reg <= '0;
                     end
                 end
 
-                SPI_CS_LOW: begin
-                    cs_n <= 1'b0;
+                SPI_START: begin
+                    spi_cs <= 1'b0;  // Assert chip select
+                    clk_count <= clk_count + 1;
                 end
 
                 SPI_TRANSFER: begin
-                    // Data transmission on negative edge (CPOL=0, CPHA=0)
-                    if (sclk_negedge) begin
-                        tx_shift_reg <= {tx_shift_reg[DATA_WIDTH-2:0], 1'b0};
-                        bit_counter <= bit_counter + 1'b1;
-                    end
-
-                    // Data reception on positive edge
-                    if (sclk_posedge) begin
-                        rx_shift_reg <= {rx_shift_reg[DATA_WIDTH-2:0], miso};
+                    if (clk_count < CLK_DIV/2) begin
+                        spi_clk <= 1'b0;
+                        spi_mosi <= tx_shift_reg[7-bit_count];
+                        clk_count <= clk_count + 1;
+                    end else if (clk_count < CLK_DIV) begin
+                        spi_clk <= 1'b1;
+                        rx_shift_reg[7-bit_count] <= spi_miso;
+                        clk_count <= clk_count + 1;
+                    end else begin
+                        clk_count <= '0;
+                        bit_count <= bit_count + 1;
+                        if (bit_count == 7) begin
+                            rx_data <= rx_shift_reg;
+                        end
                     end
                 end
 
-                SPI_CS_HIGH: begin
-                    cs_n <= 1'b1;
-                    transaction_done <= 1'b1;
-                    rx_data <= rx_shift_reg;
+                SPI_FINISH: begin
+                    spi_clk <= 1'b0;
+                    if (clk_count >= CLK_DIV) begin
+                        spi_cs <= 1'b1;  // Deassert chip select
+                        transaction_done <= 1'b1;
+                    end else begin
+                        clk_count <= clk_count + 1;
+                    end
                 end
             endcase
         end
     end
-
-    // MOSI output
-    assign mosi = (current_state == SPI_TRANSFER) ? tx_shift_reg[DATA_WIDTH-1] : 1'b0;
-
-    // Assertions for verification
-    `ifdef SIMULATION
-        always @(posedge clk) begin
-            if (current_state == SPI_TRANSFER) begin
-                assert (bit_counter <= DATA_WIDTH) 
-                    else $error("SPI bit counter overflow: %0d", bit_counter);
-            end
-        end
-    `endif
 
 endmodule : spi_master

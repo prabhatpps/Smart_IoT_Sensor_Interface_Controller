@@ -1,38 +1,35 @@
 //=============================================================================
 // FIFO Unit Test
-// Author: Prabhat Pandey
-// Date: August 24, 2025
+// Tests the synchronous FIFO functionality
 //=============================================================================
 
 `timescale 1ns/1ps
 
-module tb_sync_fifo;
+module tb_sync_fifo();
 
-    parameter DATA_WIDTH = 16;
-    parameter DEPTH = 8;
-    parameter ADDR_WIDTH = 3;
+    parameter DATA_WIDTH = 8;
+    parameter DEPTH = 16;
 
-    logic                    clk;
-    logic                    rst_n;
-    logic                    wr_en;
-    logic                    rd_en;
-    logic [DATA_WIDTH-1:0]   wr_data;
-    logic [DATA_WIDTH-1:0]   rd_data;
-    logic                    full;
-    logic                    empty;
-    logic [ADDR_WIDTH:0]     count;
+    logic clk = 0;
+    logic rst_n = 0;
+    logic wr_en = 0;
+    logic rd_en = 0;
+    logic [DATA_WIDTH-1:0] wr_data = 0;
+    logic [DATA_WIDTH-1:0] rd_data;
+    logic full;
+    logic empty;
+    logic [$clog2(DEPTH+1)-1:0] count;
+
+    integer error_count = 0;
+    integer test_count = 0;
 
     // Clock generation
-    initial begin
-        clk = 0;
-        forever #5ns clk = ~clk;
-    end
+    always #5 clk = ~clk;
 
-    // DUT
+    // DUT instantiation
     sync_fifo #(
         .DATA_WIDTH(DATA_WIDTH),
-        .DEPTH(DEPTH),
-        .ADDR_WIDTH(ADDR_WIDTH)
+        .DEPTH(DEPTH)
     ) dut (
         .clk(clk),
         .rst_n(rst_n),
@@ -46,45 +43,111 @@ module tb_sync_fifo;
     );
 
     initial begin
-        $display("=== FIFO Unit Test ===");
+        $display("🔧 FIFO Unit Test Starting...");
 
+        // Reset
         rst_n = 0;
-        wr_en = 0;
-        rd_en = 0;
-        wr_data = 0;
+        repeat(10) @(posedge clk);
+        rst_n = 1;
+        repeat(5) @(posedge clk);
 
-        #20ns rst_n = 1;
-
-        // Test 1: Write until full
-        $display("Test 1: Fill FIFO");
-        for (int i = 0; i < DEPTH + 2; i++) begin
-            @(posedge clk);
-            wr_data = i + 1;
-            wr_en = !full;
-            $display("Write %0d, Count: %0d, Full: %b", wr_data, count, full);
+        // Test 1: Empty condition after reset
+        test_count++;
+        if (!empty) begin
+            $display("❌ Test %0d FAILED: FIFO should be empty after reset", test_count);
+            error_count++;
+        end else begin
+            $display("✅ Test %0d PASSED: FIFO correctly empty after reset", test_count);
         end
 
+        // Test 2: Write single item
+        test_count++;
+        @(posedge clk);
+        wr_data = 8'hAA;
+        wr_en = 1;
+        @(posedge clk);
         wr_en = 0;
-        #20ns;
+        @(posedge clk);
 
-        // Test 2: Read until empty
-        $display("\nTest 2: Empty FIFO");
-        for (int i = 0; i < DEPTH + 2; i++) begin
-            @(posedge clk);
-            rd_en = !empty;
-            $display("Read %0d, Count: %0d, Empty: %b", rd_data, count, empty);
+        if (empty || count != 1) begin
+            $display("❌ Test %0d FAILED: FIFO should contain 1 item", test_count);
+            error_count++;
+        end else begin
+            $display("✅ Test %0d PASSED: Single write successful", test_count);
         end
 
+        // Test 3: Read single item
+        test_count++;
+        rd_en = 1;
+        @(posedge clk);
         rd_en = 0;
-        #20ns;
+        @(posedge clk);
 
-        $display("\nFIFO test completed successfully");
+        if (!empty || rd_data != 8'hAA) begin
+            $display("❌ Test %0d FAILED: Read data mismatch or FIFO not empty", test_count);
+            error_count++;
+        end else begin
+            $display("✅ Test %0d PASSED: Single read successful", test_count);
+        end
+
+        // Test 4: Fill FIFO
+        test_count++;
+        for (int i = 0; i < DEPTH; i++) begin
+            @(posedge clk);
+            wr_data = i;
+            wr_en = 1;
+            @(posedge clk);
+            wr_en = 0;
+        end
+        @(posedge clk);
+
+        if (!full || count != DEPTH) begin
+            $display("❌ Test %0d FAILED: FIFO should be full", test_count);
+            error_count++;
+        end else begin
+            $display("✅ Test %0d PASSED: FIFO fill successful", test_count);
+        end
+
+        // Test 5: Empty FIFO
+        test_count++;
+        for (int i = 0; i < DEPTH; i++) begin
+            rd_en = 1;
+            @(posedge clk);
+            rd_en = 0;
+            @(posedge clk);
+            if (rd_data !== (i & 8'hFF)) begin
+                $display("❌ Read data mismatch at position %0d: expected %0h, got %0h", i, i & 8'hFF, rd_data);
+                error_count++;
+            end
+        end
+
+        if (!empty) begin
+            $display("❌ Test %0d FAILED: FIFO should be empty after reading all", test_count);
+            error_count++;
+        end else begin
+            $display("✅ Test %0d PASSED: FIFO empty successful", test_count);
+        end
+
+        // Final results
+        $display("\n=== FIFO Unit Test Results ===");
+        $display("Tests run: %0d", test_count);
+        $display("Errors: %0d", error_count);
+
+        if (error_count == 0) begin
+            $display("🎉 ALL FIFO TESTS PASSED!");
+        end else begin
+            $display("💥 %0d FIFO TEST(S) FAILED!", error_count);
+        end
+
+        #100;
         $finish;
     end
 
+    // Timeout watchdog
     initial begin
-        $dumpfile("fifo_test.vcd");
-        $dumpvars(0, tb_sync_fifo);
+        #50000; // 50us timeout
+        $display("❌ TIMEOUT: FIFO test exceeded maximum runtime");
+        $finish;
     end
 
 endmodule

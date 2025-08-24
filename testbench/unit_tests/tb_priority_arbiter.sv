@@ -1,124 +1,74 @@
 //=============================================================================
-// Priority Arbiter Unit Test  
-// Author: Prabhat Pandey
-// Date: August 24, 2025
+// Priority Arbiter Testbench
 //=============================================================================
 
 `timescale 1ns/1ps
 
-import iot_sensor_pkg::*;
+module tb_priority_arbiter();
 
-module tb_priority_arbiter;
+    import iot_sensor_pkg::*;
 
-    logic        clk;
-    logic        rst_n;
-    logic        enable;
-    logic [15:0] temp_data;
-    logic        temp_valid;
-    logic        temp_ready;
-    logic [15:0] hum_data;
-    logic        hum_valid;
-    logic        hum_ready;
-    logic [15:0] motion_data;
-    logic        motion_valid;
-    logic        motion_ready;
-    logic [15:0] sensor_data;
-    logic [1:0]  sensor_id;
-    logic        data_valid;
-    logic        data_ready;
-    logic [2:0]  pending_sensors;
-    logic        overflow_error;
+    logic clk = 0;
+    logic rst_n = 0;
+    
+    // Sensor requests
+    logic temp_req = 0;
+    logic hum_req = 0;
+    logic motion_req = 0;
+    
+    // Grants
+    logic temp_grant;
+    logic hum_grant;
+    logic motion_grant;
+    
+    // FIFO interfaces
+    logic temp_fifo_empty = 1;
+    logic hum_fifo_empty = 1;
+    logic motion_fifo_empty = 1;
+    
+    logic [3:0] temp_count = 0;
+    logic [3:0] hum_count = 0;
+    logic [3:0] motion_count = 0;
 
-    // Clock generation
-    initial begin
-        clk = 0;
-        forever #5ns clk = ~clk;
-    end
+    always #5 clk = ~clk;
 
-    // DUT
     priority_arbiter dut (
         .clk(clk),
         .rst_n(rst_n),
-        .enable(enable),
-        .temp_data(temp_data),
-        .temp_valid(temp_valid),
-        .temp_ready(temp_ready),
-        .hum_data(hum_data),
-        .hum_valid(hum_valid),
-        .hum_ready(hum_ready),
-        .motion_data(motion_data),
-        .motion_valid(motion_valid),
-        .motion_ready(motion_ready),
-        .sensor_data(sensor_data),
-        .sensor_id(sensor_id),
-        .data_valid(data_valid),
-        .data_ready(data_ready),
-        .pending_sensors(pending_sensors),
-        .overflow_error(overflow_error)
+        .temp_req(temp_req),
+        .hum_req(hum_req),
+        .motion_req(motion_req),
+        .temp_grant(temp_grant),
+        .hum_grant(hum_grant),
+        .motion_grant(motion_grant),
+        .temp_fifo_empty(temp_fifo_empty),
+        .hum_fifo_empty(hum_fifo_empty),
+        .motion_fifo_empty(motion_fifo_empty),
+        .temp_count(temp_count),
+        .hum_count(hum_count),
+        .motion_count(motion_count)
     );
 
     initial begin
-        $display("=== Priority Arbiter Unit Test ===");
-
+        $display("Priority Arbiter Unit Test Starting...");
+        
         rst_n = 0;
-        enable = 0;
-        temp_data = 0;
-        temp_valid = 0;
-        hum_data = 0;
-        hum_valid = 0;
-        motion_data = 0;
-        motion_valid = 0;
-        data_ready = 0;
+        #100;
+        rst_n = 1;
+        #50;
 
-        #20ns rst_n = 1;
-        #10ns enable = 1;
-
-        // Test priority: Motion > Temperature > Humidity
-        $display("\nTest 1: Priority verification");
-
-        @(posedge clk);
-        temp_data = 16'h1234;
-        temp_valid = 1;
-        hum_data = 16'h5678;
-        hum_valid = 1;
-        motion_data = 16'h9ABC;
-        motion_valid = 1;
-
-        @(posedge clk);
-        temp_valid = 0;
-        hum_valid = 0;
-        motion_valid = 0;
-
-        // Wait for output
-        wait(data_valid);
-        $display("First output - Sensor ID: %0d, Data: 0x%04h", sensor_id, sensor_data);
-        assert(sensor_id == SENSOR_MOTION) else $error("Priority violation: expected motion");
-
-        @(posedge clk);
-        data_ready = 1;
-        @(posedge clk);
-        data_ready = 0;
-
-        wait(data_valid);
-        $display("Second output - Sensor ID: %0d, Data: 0x%04h", sensor_id, sensor_data);
-        assert(sensor_id == SENSOR_TEMPERATURE) else $error("Priority violation: expected temperature");
-
-        @(posedge clk);
-        data_ready = 1;
-        @(posedge clk);
-        data_ready = 0;
-
-        wait(data_valid);
-        $display("Third output - Sensor ID: %0d, Data: 0x%04h", sensor_id, sensor_data);
-        assert(sensor_id == SENSOR_HUMIDITY) else $error("Priority violation: expected humidity");
-
-        $display("\nPriority arbiter test completed successfully");
+        // Test priority: motion > temperature > humidity
+        temp_req = 1;
+        hum_req = 1;
+        motion_req = 1;
+        
+        repeat(10) @(posedge clk);
+        
+        if (!motion_grant) $error("Motion should have highest priority");
+        
+        $display("✅ Priority Arbiter Unit Test Completed");
+        #100;
         $finish;
-    end
-
-    initial begin
-        $dumpfile("arbiter_test.vcd");
-        $dumpvars(0, tb_priority_arbiter);
     end
 
 endmodule

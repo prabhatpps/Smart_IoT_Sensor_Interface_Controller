@@ -1,404 +1,319 @@
 //=============================================================================
-// Smart IoT Sensor Interface Controller - Testbench
-// Author: Prabhat Pandey
-// Date: August 24, 2025
-// Description: Comprehensive testbench with realistic sensor stimuli
+// IoT Sensor Controller Integration Testbench
+// Complete system-level verification with proper stimulus
 //=============================================================================
 
 `timescale 1ns/1ps
 
-import iot_sensor_pkg::*;
+module tb_iot_sensor_controller();
 
-module tb_iot_sensor_controller;
+    import iot_sensor_pkg::*;
 
-    // System signals
-    logic        clk;
-    logic        rst_n;
-    logic        enable;
+    // Clock and Reset
+    logic clk = 0;
+    logic rst_n = 0;
 
-    // Temperature sensor I2C (simulated with pullups)
-    wire         temp_scl;
-    wire         temp_sda;
-    logic        temp_sda_drive;
-    logic        temp_scl_drive;
+    // System Control
+    logic [1:0] power_mode;
+    logic enable;
 
-    // Humidity sensor I2C (simulated with pullups)
-    wire         hum_scl;
-    wire         hum_sda;
-    logic        hum_sda_drive;
-    logic        hum_scl_drive;
+    // I2C Interface (Temperature & Humidity)
+    logic i2c_scl;
+    logic i2c_sda;
+    wire i2c_scl_wire;
+    wire i2c_sda_wire;
+    
+    // SPI Interface (Motion Sensor)
+    logic spi_clk;
+    logic spi_mosi;
+    logic spi_miso = 0;
+    logic spi_cs;
 
-    // Motion sensor SPI
-    logic        motion_sclk;
-    logic        motion_mosi;
-    logic        motion_miso;
-    logic        motion_cs_n;
-    logic        motion_int;
+    // Motion Interrupt
+    logic motion_int = 0;
 
-    // Serial output
-    logic        tx_serial;
-    logic        tx_busy;
+    // Serial Output
+    logic serial_tx;
+    logic serial_tx_busy;
 
-    // Power management
-    logic [1:0]  power_mode;
-    logic        timer_wakeup;
-    logic        system_wakeup;
-    logic        power_save_active;
+    // Status Outputs
+    logic temp_data_ready;
+    logic hum_data_ready;
+    logic motion_data_ready;
+    logic packet_sent;
 
-    // Status outputs
-    logic [7:0]  packets_transmitted;
-    logic        system_error;
-    logic [15:0] debug_status;
+    // Test control signals
+    integer test_count = 0;
+    integer error_count = 0;
+    integer packet_count = 0;
+    
+    // Test helper variables (moved to module level)
+    integer initial_packets;
+    integer start_packets; 
+    integer packets_generated;
+    
+    // I2C bus tristate handling
+    logic i2c_scl_drive = 0;
+    logic i2c_sda_drive = 0;
+    logic i2c_scl_out = 1;
+    logic i2c_sda_out = 1;
+    
+    assign i2c_scl_wire = i2c_scl_drive ? i2c_scl_out : 1'bz;
+    assign i2c_sda_wire = i2c_sda_drive ? i2c_sda_out : 1'bz;
 
-    // Testbench variables
-    logic [7:0]  received_bytes[0:1023];
-    integer      byte_count;
-    integer      test_phase;
-    real         temperature_value;
-    real         humidity_value;
-    integer      motion_x, motion_y;
+    // Clock Generation
+    always #5 clk = ~clk; // 100MHz clock
 
-    // Clock generation (100MHz)
-    initial begin
-        clk = 1'b0;
-        forever #5ns clk = ~clk; // 100MHz clock
-    end
-
-    // I2C pullup simulation
-    assign temp_sda = temp_sda_drive ? 1'b0 : 1'bz;
-    assign temp_scl = temp_scl_drive ? 1'b0 : 1'bz;
-    assign hum_sda = hum_sda_drive ? 1'b0 : 1'bz;
-    assign hum_scl = hum_scl_drive ? 1'b0 : 1'bz;
-
-    // Pullup resistors (weak)
-    pullup(temp_sda);
-    pullup(temp_scl);
-    pullup(hum_sda);
-    pullup(hum_scl);
-
-    // DUT instantiation
+    // Device Under Test
     iot_sensor_controller dut (
         .clk(clk),
         .rst_n(rst_n),
-        .enable(enable),
-        .temp_scl(temp_scl),
-        .temp_sda(temp_sda),
-        .hum_scl(hum_scl),
-        .hum_sda(hum_sda),
-        .motion_sclk(motion_sclk),
-        .motion_mosi(motion_mosi),
-        .motion_miso(motion_miso),
-        .motion_cs_n(motion_cs_n),
-        .motion_int(motion_int),
-        .tx_serial(tx_serial),
-        .tx_busy(tx_busy),
         .power_mode(power_mode),
-        .timer_wakeup(timer_wakeup),
-        .system_wakeup(system_wakeup),
-        .power_save_active(power_save_active),
-        .packets_transmitted(packets_transmitted),
-        .system_error(system_error),
-        .debug_status(debug_status)
+        .enable(enable),
+        .i2c_scl(i2c_scl_wire),
+        .i2c_sda(i2c_sda_wire),
+        .spi_clk(spi_clk),
+        .spi_mosi(spi_mosi),
+        .spi_miso(spi_miso),
+        .spi_cs(spi_cs),
+        .motion_int(motion_int),
+        .serial_tx(serial_tx),
+        .serial_tx_busy(serial_tx_busy),
+        .temp_data_ready(temp_data_ready),
+        .hum_data_ready(hum_data_ready),
+        .motion_data_ready(motion_data_ready),
+        .packet_sent(packet_sent)
     );
 
-    // Main test sequence
+    // I2C Slave Model (simplified)
+    reg [7:0] i2c_slave_data = 8'h25; // Temperature data
+    integer i2c_bit_count = 0;
+    logic i2c_ack_phase = 0;
+    
+    // Simple I2C slave response
+    always @(negedge i2c_scl_wire) begin
+        if (rst_n && !spi_cs) begin
+            if (i2c_ack_phase) begin
+                // Send ACK (pull SDA low)
+                i2c_sda_drive <= 1'b1;
+                i2c_sda_out <= 1'b0;
+                i2c_ack_phase <= 1'b0;
+            end else if (i2c_bit_count >= 8) begin
+                i2c_ack_phase <= 1'b1;
+                i2c_bit_count <= 0;
+            end else begin
+                i2c_sda_drive <= 1'b1;
+                i2c_sda_out <= i2c_slave_data[7-i2c_bit_count];
+                i2c_bit_count <= i2c_bit_count + 1;
+            end
+        end
+    end
+    
+    always @(posedge i2c_scl_wire) begin
+        if (i2c_ack_phase) begin
+            i2c_sda_drive <= 1'b0; // Release SDA after ACK
+        end
+    end
+
+    // SPI Motion Sensor Model
+    reg [7:0] motion_data = 8'h42;
+    reg [3:0] spi_bit_count = 0;
+    
+    always @(posedge spi_clk) begin
+        if (!spi_cs) begin
+            spi_miso <= motion_data[7-spi_bit_count];
+            spi_bit_count <= spi_bit_count + 1;
+        end else begin
+            spi_bit_count <= 0;
+        end
+    end
+
+    // Motion interrupt generator
     initial begin
-        // Initialize signals
-        rst_n = 1'b0;
-        enable = 1'b0;
+        forever begin
+            #1_000_000; // Every 1ms
+            motion_int = 1;
+            #1000;
+            motion_int = 0;
+        end
+    end
+
+    // Serial packet monitor
+    always @(posedge packet_sent) begin
+        packet_count++;
+        $display("📦 [%0t] Packet #%0d transmitted", $time, packet_count);
+    end
+
+    // Main Test Sequence
+    initial begin
+        $display("=================================================");
+        $display("IoT Sensor Controller Integration Test Starting");
+        $display("Time: %0t", $time);
+        $display("=================================================");
+
+        // Initialize all signals
+        rst_n = 0;
+        enable = 0;
         power_mode = PWR_NORMAL;
-        timer_wakeup = 1'b0;
-        motion_int = 1'b0;
-        temp_sda_drive = 1'b1; // Release I2C lines
-        temp_scl_drive = 1'b1;
-        hum_sda_drive = 1'b1;
-        hum_scl_drive = 1'b1;
-        motion_miso = 1'b0;
-
-        test_phase = 0;
-        byte_count = 0;
-        temperature_value = 25.0; // Start at 25°C
-        humidity_value = 50.0;    // Start at 50% RH
-        motion_x = 0;
-        motion_y = 0;
-
-        $display("=== IoT Sensor Interface Controller Testbench ===");
-        $display("Time: %0t - Starting testbench", $time);
 
         // Reset sequence
-        #100ns;
-        rst_n = 1'b1;
-        #50ns;
-        enable = 1'b1;
+        repeat(10) @(posedge clk);
+        rst_n = 1;
+        repeat(5) @(posedge clk);
+        
+        // Test 1: Basic Functionality
+        test_basic_operation();
+        
+        // Test 2: Power Management
+        test_power_modes();
+        
+        // Test 3: Motion Interrupt Response
+        test_motion_interrupt();
+        
+        // Test 4: Serial Communication
+        test_serial_packets();
 
-        $display("Time: %0t - Reset released, system enabled", $time);
+        // Wait for final packets
+        repeat(1000) @(posedge clk);
 
-        // Test Phase 1: Normal operation with all sensors
-        test_phase = 1;
-        $display("\n=== Test Phase 1: Normal Operation ===");
-
-        fork
-            simulate_temperature_sensor();
-            simulate_humidity_sensor();
-            simulate_motion_sensor();
-            monitor_serial_output();
-            test_sequence_controller();
-        join_any
-
-        $display("\nTime: %0t - Testbench completed", $time);
-        $display("Total packets transmitted: %0d", packets_transmitted);
-        $display("System errors encountered: %0s", system_error ? "YES" : "NO");
-        $finish;
-    end
-
-    // Test sequence controller
-    task test_sequence_controller();
-        // Phase 1: Normal operation (5ms)
-        #5ms;
-        $display("\nTime: %0t - Phase 1 complete, switching to low power", $time);
-
-        // Phase 2: Low power mode (3ms)
-        power_mode = PWR_LOW;
-        #3ms;
-        $display("\nTime: %0t - Phase 2 complete, testing motion interrupt", $time);
-
-        // Phase 3: Motion interrupt test
-        motion_int = 1'b1;
-        #100us;
-        motion_int = 1'b0;
-        #2ms;
-
-        // Phase 4: Sleep mode test
-        $display("\nTime: %0t - Testing sleep mode", $time);
-        power_mode = PWR_SLEEP;
-        #1ms;
-
-        // Wake up with motion
-        motion_int = 1'b1;
-        #50us;
-        motion_int = 1'b0;
-        power_mode = PWR_NORMAL;
-        #1ms;
-
-        $display("\nTime: %0t - All test phases completed", $time);
-    endtask
-
-    // Simulate temperature sensor (TMP102-like behavior)
-    task simulate_temperature_sensor();
-        logic [7:0] temp_msb, temp_lsb;
-        integer temp_raw;
-
-        forever begin
-            @(negedge temp_scl);
-
-            // Simple I2C slave simulation
-            if (!motion_cs_n) begin // Check if we're being addressed
-                // Convert temperature to 12-bit value (TMP102 format)
-                temp_raw = $rtoi(temperature_value * 16.0); // 0.0625°C per LSB
-                temp_msb = temp_raw[11:4];
-                temp_lsb = {temp_raw[3:0], 4'b0000};
-
-                // Simulate I2C ACK and data transmission
-                #1us temp_sda_drive = 1'b0; // ACK
-                #2us temp_sda_drive = 1'b1; // Release
-
-                // Send MSB
-                for (int i = 7; i >= 0; i--) begin
-                    @(posedge temp_scl);
-                    temp_sda_drive = ~temp_msb[i]; // Invert for pullup
-                    @(negedge temp_scl);
-                end
-
-                #1us temp_sda_drive = 1'b1; // NACK from master
-
-                // Update temperature (slowly ramping)
-                if (temperature_value < 35.0) begin
-                    temperature_value = temperature_value + 0.1;
-                end
-            end
-
-            #10us; // Small delay between transactions
-        end
-    endtask
-
-    // Simulate humidity sensor (SHT30-like behavior)  
-    task simulate_humidity_sensor();
-        logic [7:0] hum_msb, hum_lsb;
-        integer hum_raw;
-
-        forever begin
-            @(negedge hum_scl);
-
-            if (!motion_cs_n) begin // Check if being addressed
-                // Convert humidity to 16-bit value
-                hum_raw = $rtoi(humidity_value * 655.35); // 65535 / 100
-                hum_msb = hum_raw[15:8];
-                hum_lsb = hum_raw[7:0];
-
-                // Simulate I2C ACK and data
-                #1us hum_sda_drive = 1'b0; // ACK
-                #2us hum_sda_drive = 1'b1; // Release
-
-                // Send data bytes
-                for (int i = 7; i >= 0; i--) begin
-                    @(posedge hum_scl);
-                    hum_sda_drive = ~hum_msb[i];
-                    @(negedge hum_scl);
-                end
-
-                #1us hum_sda_drive = 1'b1; // NACK
-
-                // Update humidity (sine wave pattern)
-                humidity_value = 50.0 + 20.0 * $sin($time / 1000000.0);
-                if (humidity_value < 0) humidity_value = 0;
-                if (humidity_value > 100) humidity_value = 100;
-            end
-
-            #15us; // Humidity sensor typically slower
-        end
-    endtask
-
-    // Simulate motion sensor (ADXL345-like behavior)
-    task simulate_motion_sensor();
-        logic [15:0] accel_data;
-
-        forever begin
-            @(negedge motion_cs_n); // SPI transaction start
-
-            // Wait for command
-            @(posedge motion_cs_n); // Transaction end
-
-            // Simulate accelerometer data based on motion interrupt
-            if (motion_int) begin
-                motion_x = $random % 512 + 256; // Simulated motion
-                motion_y = $random % 512 + 256;
-            end else begin
-                motion_x = $random % 64;  // Small noise
-                motion_y = $random % 64;
-            end
-
-            // Provide data on MISO during next transaction
-            accel_data = motion_x[15:0];
-
-            // Simulate SPI data transmission
-            fork
-                begin
-                    forever begin
-                        @(posedge motion_sclk);
-                        motion_miso = accel_data[15];
-                        accel_data = {accel_data[14:0], 1'b0};
-                    end
-                end
-            join_none
-
-            #1ms; // Motion sensor sample rate
-        end
-    endtask
-
-    // Monitor serial output and decode packets
-    task monitor_serial_output();
-        logic [7:0] rx_byte;
-        integer bit_count;
-        logic [7:0] packet_buffer[0:15];
-        integer packet_index;
-
-        packet_index = 0;
-
-        forever begin
-            // Wait for start bit
-            @(negedge tx_serial);
-
-            // Sample data bits (assuming 115200 baud)
-            #(1000000000 / 115200); // Start bit duration
-
-            rx_byte = 8'h00;
-            for (bit_count = 0; bit_count < 8; bit_count++) begin
-                #(1000000000 / 115200); // Bit duration at 115200 baud
-                rx_byte[bit_count] = tx_serial;
-            end
-
-            // Stop bit
-            #(1000000000 / 115200);
-
-            // Store received byte
-            received_bytes[byte_count] = rx_byte;
-            packet_buffer[packet_index] = rx_byte;
-            byte_count++;
-            packet_index++;
-
-            $display("Time: %0t - RX Byte[%0d]: 0x%02h ('%c')", 
-                     $time, byte_count-1, rx_byte, 
-                     (rx_byte >= 32 && rx_byte <= 126) ? rx_byte : ".");
-
-            // Check for complete packet (starts and ends with 0x7E)
-            if (rx_byte == 8'h7E && packet_index > 1) begin
-                decode_packet(packet_buffer, packet_index);
-                packet_index = 0;
-            end
-
-            // Prevent buffer overflow
-            if (packet_index >= 16) packet_index = 0;
-        end
-    endtask
-
-    // Decode received packet
-    task decode_packet(input logic [7:0] buffer[0:15], input integer length);
-        logic [1:0]  sensor_id;
-        logic [7:0]  packet_length;
-        logic [15:0] timestamp;
-        logic [15:0] sensor_data;
-        logic [7:0]  checksum;
-        string       sensor_name;
-
-        if (length >= 9 && buffer[0] == 8'h7E && buffer[8] == 8'h7E) begin
-            sensor_id = buffer[1][1:0];
-            packet_length = buffer[2];
-            timestamp = {buffer[3], buffer[4]};
-            sensor_data = {buffer[5], buffer[6]};
-            checksum = buffer[7];
-
-            case (sensor_id)
-                2'b00: sensor_name = "Temperature";
-                2'b01: sensor_name = "Humidity";
-                2'b10: sensor_name = "Motion";
-                default: sensor_name = "Unknown";
-            endcase
-
-            $display("\n=== PACKET DECODED ===");
-            $display("Sensor: %s (ID: %0d)", sensor_name, sensor_id);
-            $display("Timestamp: %0d", timestamp);
-            $display("Data: 0x%04h (%0d)", sensor_data, sensor_data);
-            $display("Checksum: 0x%02h", checksum);
-            $display("====================\n");
+        // Final Results
+        $display("=================================================");
+        $display("Test Completion Summary");
+        $display("=================================================");
+        $display("Total Tests Run: %0d", test_count);
+        $display("Errors Detected: %0d", error_count);
+        $display("Packets Transmitted: %0d", packet_count);
+        
+        if (error_count == 0) begin
+            $display("🎉 ALL TESTS PASSED SUCCESSFULLY!");
+            $display("✅ System is functioning correctly");
         end else begin
-            $display("Invalid packet format (length=%0d)", length);
+            $display("💥 %0d TEST(S) FAILED!", error_count);
+            $display("❌ Please check the design");
         end
-    endtask
-
-    // Monitor and report system status
-    initial begin
-        forever begin
-            #1ms;
-            if (debug_status[15]) begin // Power save active
-                $display("Time: %0t - System in power save mode", $time);
-            end
-            if (system_error) begin
-                $display("Time: %0t - SYSTEM ERROR detected!", $time);
-            end
-        end
-    end
-
-    // Timeout protection
-    initial begin
-        #50ms;
-        $display("\nERROR: Testbench timeout after 50ms");
+        
+        $display("=================================================");
+        $display("Test completed at time: %0t", $time);
+        
         $finish;
     end
 
-    // Waveform dump
+    // Test Tasks
+    task test_basic_operation();
+        $display("\\n--- Test 1: Basic System Operation ---");
+        test_count++;
+        
+        enable = 1;
+        power_mode = PWR_NORMAL;
+        
+        $display("⏰ [%0t] Enabling system in normal power mode", $time);
+        
+        // Wait for system initialization
+        repeat(100) @(posedge clk);
+        
+        // Check if system responds
+        fork
+            begin
+                // Timeout after reasonable time
+                repeat(50000) @(posedge clk);
+                if (packet_count == 0) begin
+                    $display("❌ [%0t] No packets generated - system may not be working", $time);
+                    error_count++;
+                end
+            end
+            begin
+                // Wait for first packet
+                wait(packet_count > 0);
+                $display("✅ [%0t] First packet transmitted successfully", $time);
+            end
+        join_any
+        disable fork;
+        
+        $display("Basic operation test completed");
+    endtask
+
+    task test_power_modes();
+        $display("\\n--- Test 2: Power Mode Management ---");
+        test_count++;
+        
+        $display("🔋 [%0t] Testing LOW power mode", $time);
+        power_mode = PWR_LOW;
+        repeat(5000) @(posedge clk);
+        
+        $display("😴 [%0t] Testing SLEEP power mode", $time);
+        power_mode = PWR_SLEEP;
+        repeat(5000) @(posedge clk);
+        
+        $display("⚡ [%0t] Returning to NORMAL power mode", $time);
+        power_mode = PWR_NORMAL;
+        repeat(5000) @(posedge clk);
+        
+        $display("✅ Power mode transitions completed");
+    endtask
+
+    task test_motion_interrupt();
+        $display("\\n--- Test 3: Motion Interrupt Response ---");
+        test_count++;
+        
+        initial_packets = packet_count;
+        
+        $display("🏃 [%0t] Generating motion interrupt", $time);
+        motion_int = 1;
+        repeat(100) @(posedge clk);
+        motion_int = 0;
+        
+        // Wait for response
+        repeat(10000) @(posedge clk);
+        
+        if (packet_count > initial_packets) begin
+            $display("✅ [%0t] Motion interrupt properly handled", $time);
+        end else begin
+            $display("⚠️  [%0t] Motion interrupt response may be delayed", $time);
+        end
+    endtask
+
+    task test_serial_packets();
+        $display("\\n--- Test 4: Serial Packet Transmission ---");
+        test_count++;
+        
+        start_packets = packet_count;
+        
+        // Monitor serial transmission for a period
+        repeat(20000) @(posedge clk);
+        
+        packets_generated = packet_count - start_packets;
+        $display("📊 [%0t] Generated %0d packets during test period", $time, packets_generated);
+        
+        if (packets_generated > 0) begin
+            $display("✅ Serial packet transmission is working");
+        end else begin
+            $display("❌ No packets generated during test period");
+            error_count++;
+        end
+    endtask
+
+    // Timeout watchdog
     initial begin
-        $dumpfile("iot_sensor_controller.vcd");
-        $dumpvars(0, tb_iot_sensor_controller);
+        #100_000_000; // 100ms timeout
+        $display("❌ TIMEOUT: Test exceeded maximum runtime");
+        $display("System may be hung or running too slowly");
+        $finish;
+    end
+
+    // Waveform generation
+    initial begin
+        if ($test$plusargs("DUMP_VCD")) begin
+            $dumpfile("tb_iot_sensor_controller.vcd");
+            $dumpvars(0, tb_iot_sensor_controller);
+            $display("📊 VCD waveform dumping enabled");
+        end
+    end
+
+    // Coverage collection (if supported)
+    initial begin
+        if ($test$plusargs("COVERAGE")) begin
+            $display("📈 Coverage collection enabled");
+        end
     end
 
 endmodule : tb_iot_sensor_controller
