@@ -100,10 +100,10 @@ The architecture follows a **layered, modular approach** inspired by OSI network
 └─────────────────┘    └──────────────────┘    └─────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Data Link Layer                              │
+┌──────────────────────────────────────────────────────────────────┐
+│                    Data Link Layer                               │
 ├─────────────────┬──────────────────┬─────────────────────────────┤
-│  Priority       │   FIFO Buffering │   Flow Control             │
+│  Priority       │   FIFO Buffering │   Flow Control              │
 │  Arbitration    │   Overflow Mgmt  │   Back-pressure             │
 └─────────────────┴──────────────────┴─────────────────────────────┘
          │                       │                       │
