@@ -1,0 +1,73 @@
+#-----------------------------------------------------------
+# Vivado v2025.1 (64-bit)
+# SW Build 6140274 on Wed May 21 22:58:25 MDT 2025
+# IP Build 6138677 on Thu May 22 03:10:11 MDT 2025
+# SharedData Build 6139179 on Tue May 20 17:58:58 MDT 2025
+# Start of session at: Mon Aug 25 01:19:17 2025
+# Process ID         : 53206
+# Current directory  : /home/prabhat/Work/Smart_IoT_Sensor_Interface_Controller/vivado_project/iot_sensor_controller.runs/impl_1
+# Command line       : vivado -log iot_sensor_controller.vdi -applog -product Vivado -messageDb vivado.pb -mode batch -source iot_sensor_controller.tcl -notrace
+# Log file           : /home/prabhat/Work/Smart_IoT_Sensor_Interface_Controller/vivado_project/iot_sensor_controller.runs/impl_1/iot_sensor_controller.vdi
+# Journal file       : /home/prabhat/Work/Smart_IoT_Sensor_Interface_Controller/vivado_project/iot_sensor_controller.runs/impl_1/vivado.jou
+# Running On         : fedora
+# Platform           : Fedora
+# Operating System   : Fedora release 42 (Adams)
+# Processor Detail   : AMD Ryzen 7 5800H with Radeon Graphics
+# CPU Frequency      : 4250.680 MHz
+# CPU Physical cores : 8
+# CPU Logical cores  : 16
+# Host memory        : 16123 MB
+# Swap memory        : 8589 MB
+# Total Virtual      : 24712 MB
+# Available Virtual  : 14889 MB
+#-----------------------------------------------------------
+source iot_sensor_controller.tcl -notrace
+Command: open_checkpoint /home/prabhat/Work/Smart_IoT_Sensor_Interface_Controller/vivado_project/iot_sensor_controller.runs/impl_1/iot_sensor_controller.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00.02 ; elapsed = 00:00:00.03 . Memory (MB): peak = 1649.355 ; gain = 0.000 ; free physical = 187 ; free virtual = 13846
+INFO: [Device 21-403] Loading part xc7a35tcpg236-1
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1881.430 ; gain = 0.000 ; free physical = 162 ; free virtual = 13713
+INFO: [Netlist 29-17] Analyzing 24 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1938.305 ; gain = 0.000 ; free physical = 254 ; free virtual = 13577
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1938.305 ; gain = 0.000 ; free physical = 254 ; free virtual = 13577
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 5 instances were transformed.
+  IOBUF => IOBUF (IBUF, OBUFT): 2 instances
+  RAM32M => RAM32M (RAMD32(x6), RAMS32(x2)): 1 instance 
+  RAM32X1D => RAM32X1D (RAMD32(x2)): 2 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.1 (64-bit) build 6140274
+Command: opt_design
+Attempting to get a license for feature 'Implementation' and/or device 'xc7a35t'
+INFO: [Common 17-349] Got license for feature 'Implementation' and/or device 'xc7a35t'
+Running DRC as a precondition to command opt_design
+
+Starting DRC Task
+INFO: [DRC 23-27] Running DRC with 8 threads
+ERROR: [DRC MDRV-1] Multiple Driver Nets: Net transmitter/UNCONN_OUT_0 has multiple drivers: transmitter/current_state[2]_inv_i_2/O, and transmitter/current_state[2]_inv_i_3/O.
+ERROR: [DRC MDRV-1] Multiple Driver Nets: Net transmitter/UNCONN_OUT_1 has multiple drivers: transmitter/current_state[1]_i_2/O, and transmitter/current_state[1]_i_3/O.
+ERROR: [DRC MDRV-1] Multiple Driver Nets: Net transmitter/tx_data_reg[0] has multiple drivers: transmitter/tx_data_reg_reg[0]/Q, and transmitter/tx_data_reg_reg[0]__0/Q.
+ERROR: [DRC MDRV-1] Multiple Driver Nets: Net transmitter/tx_data_reg[1] has multiple drivers: transmitter/tx_data_reg_reg[1]/Q, and transmitter/tx_data_reg_reg[1]__0/Q.
+ERROR: [DRC MDRV-1] Multiple Driver Nets: Net transmitter/tx_data_reg[2] has multiple drivers: transmitter/tx_data_reg_reg[2]/Q, and transmitter/tx_data_reg_reg[2]__0/Q.
+ERROR: [DRC MDRV-1] Multiple Driver Nets: Net transmitter/tx_data_reg[3] has multiple drivers: transmitter/tx_data_reg_reg[3]/Q, and transmitter/tx_data_reg_reg[3]__0/Q.
+ERROR: [DRC MDRV-1] Multiple Driver Nets: Net transmitter/tx_data_reg[4] has multiple drivers: transmitter/tx_data_reg_reg[4]/Q, and transmitter/tx_data_reg_reg[4]__0/Q.
+ERROR: [DRC MDRV-1] Multiple Driver Nets: Net transmitter/tx_data_reg[5] has multiple drivers: transmitter/tx_data_reg_reg[5]/Q, and transmitter/tx_data_reg_reg[5]__0/Q.
+ERROR: [DRC MDRV-1] Multiple Driver Nets: Net transmitter/tx_data_reg[6] has multiple drivers: transmitter/tx_data_reg_reg[6]/Q, and transmitter/tx_data_reg_reg[6]__0/Q.
+ERROR: [DRC MDRV-1] Multiple Driver Nets: Net transmitter/tx_data_reg[7] has multiple drivers: transmitter/tx_data_reg_reg[7]/Q, and transmitter/tx_data_reg_reg[7]__0/Q.
+ERROR: [DRC MDRV-1] Multiple Driver Nets: Net transmitter/tx_fifo/UNCONN_OUT has multiple drivers: transmitter/tx_fifo/current_state[0]_i_3/O, and transmitter/current_state[0]_i_2/O.
+INFO: [Project 1-461] DRC finished with 11 Errors
+INFO: [Project 1-462] Please refer to the DRC report (report_drc) for more information.
+ERROR: [Vivado_Tcl 4-78] Error(s) found during DRC. Opt_design not run.
+
+Time (s): cpu = 00:00:00.76 ; elapsed = 00:00:00.27 . Memory (MB): peak = 2146.305 ; gain = 199.965 ; free physical = 177 ; free virtual = 13500
+INFO: [Common 17-83] Releasing license: Implementation
+12 Infos, 0 Warnings, 0 Critical Warnings and 12 Errors encountered.
+opt_design failed
+ERROR: [Common 17-39] 'opt_design' failed due to earlier errors.
+
+INFO: [Common 17-206] Exiting Vivado at Mon Aug 25 01:19:23 2025...
