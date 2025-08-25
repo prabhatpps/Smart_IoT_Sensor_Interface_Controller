@@ -282,3 +282,13 @@ testbench/
 - **Adaptive Algorithms:** Dynamic priority adjustment
 
 This technical specification provides the detailed design foundation for implementing the Smart IoT Sensor Interface Controller, ensuring consistent and professional RTL development practices.
+
+---
+
+## 📄 **License**
+
+This project is released under the MIT License. See [LICENSE](LICENSE.txt) file for details.
+
+---
+
+**🎯 Remember:** This project is designed for learning and demonstration. Always verify functionality thoroughly before using in production applications!

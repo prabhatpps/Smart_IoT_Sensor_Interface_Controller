@@ -1172,3 +1172,14 @@ The technical skills, professional methodologies, and innovative approaches demo
 **Author Contact**: Prabhat Pandey, B.Tech ECE, VIT Vellore
 
 *This comprehensive report represents the culmination of advanced RTL design education and professional preparation, demonstrating readiness for industry challenges in digital system design and embedded systems development.*
+
+---
+
+
+## 📄 **License**
+
+This project is released under the MIT License. See [LICENSE](LICENSE.txt) file for details.
+
+---
+
+**🎯 Remember:** This project is designed for learning and demonstration. Always verify functionality thoroughly before using in production applications!
