@@ -138,12 +138,12 @@ Smart_IoT_Sensor_Interface_Controller/
 ├── 📂 scripts/                      # Automation & build
 │   ├── create_project.tcl           # Vivado project creation
 │   ├── run_simulation.tcl           # Automated simulation
-│   ├── run_synthesis.tcl            # Synthesis with reports
-│   ├── vivado_runner.sh             # Cross-platform scripts
-│   └── vivado_runner.bat            # Windows batch support
+│   └── run_synthesis.tcl            # Synthesis with reports
 ├── 📂 docs/                         # Documentation
 │   ├── Technical_Specification.md
-│   └── comprehensive-project-report.md
+│   ├── comprehensive-project-report.md
+│   ├── VIVADO_README.md
+│   └── VIVADO_CHECKLIST.md
 ├── 📄 Makefile                      # Multi-tool build system
 └── 📄 README.md                     # This file
 ```
@@ -375,10 +375,10 @@ parameter logic [7:0] PACKET_END_DELIMITER   = 8'h7E;
 
 ### **📖 Available Documentation**
 - **[README.md](README.md)** - This comprehensive overview
-- **[VIVADO_README.md](VIVADO_README.md)** - Vivado-specific setup guide
+- **[VIVADO_README.md](docs/VIVADO_README.md)** - Vivado-specific setup guide
 - **[Technical_Specification.md](docs/Technical_Specification.md)** - Detailed design specifications
 - **[comprehensive-project-report.md](docs/comprehensive-project-report.md)** - Complete engineering analysis
-- **[VIVADO_CHECKLIST.md](VIVADO_CHECKLIST.md)** - Setup verification guide
+- **[VIVADO_CHECKLIST.md](docs/VIVADO_CHECKLIST.md)** - Setup verification guide
 
 ### **📋 Quick Reference**
 | Command | Description | Output |
@@ -490,7 +490,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ### **🌐 Connect**
 - **GitHub:** [@prabhatpps](https://github.com/prabhatpps)
 - **LinkedIn:** [Prabhat Pandey](https://linkedin.com/in/prabhat-pandey-23b765252/)
-- **Email:** [prpandey192@gmail.com](mailto:prpandey192@gmail.com)
+- **Email:** [prabhatpandeypps@gmail.com](mailto:prabhatpandeypps@gmail.com)
 
 ### **📧 Professional Inquiries**
 - **Technical Questions:** Open GitHub Issues for project-related questions
