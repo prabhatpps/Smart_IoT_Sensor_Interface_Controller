@@ -468,7 +468,7 @@ parameter logic [7:0] PACKET_END_DELIMITER   = 8'h7E;
 
 ## 📄 **License**
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE.txt) file for details.
 
 ### **License Summary**
 - ✅ **Commercial Use**: Use in commercial products
