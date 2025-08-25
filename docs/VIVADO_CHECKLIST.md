@@ -220,7 +220,7 @@
 
 ## 📄 **License**
 
-This project is released under the MIT License. See [LICENSE](LICENSE.txt) file for details.
+This project is released under the MIT License. See [LICENSE](../LICENSE.txt) file for details.
 
 ---
 
