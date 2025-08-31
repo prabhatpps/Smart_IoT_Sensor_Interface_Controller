@@ -1,7 +1,5 @@
-#=============================================================================
-# Vivado Simulation Script - Complete and Working Version
-# Supports integration and unit testing for IoT Sensor Controller
-#=============================================================================
+# Enhanced TCL script with detailed I2C arbitration signals
+# This provides complete visibility into I2C bus arbitration
 
 set project_name "iot_sensor_controller"
 set project_file "iot_sensor_controller.xpr"
@@ -71,8 +69,8 @@ proc run_integration_test {} {
     puts "⏱️  Running simulation for 100ms..."
     run 100ms
 
-    # Add signals to waveform for debugging
-    puts "📊 Adding key signals to waveform..."
+    # ENHANCED: Add comprehensive signals to waveform
+    puts "📊 Adding comprehensive signals to waveform..."
     catch {
         add_wave_divider "=== SYSTEM SIGNALS ==="
         add_wave /tb_iot_sensor_controller/clk
@@ -80,43 +78,75 @@ proc run_integration_test {} {
         add_wave /tb_iot_sensor_controller/enable
         add_wave /tb_iot_sensor_controller/power_mode
 
-        add_wave_divider "=== SENSOR INTERFACES ==="
-        add_wave /tb_iot_sensor_controller/i2c_scl_wire
-        add_wave /tb_iot_sensor_controller/i2c_sda_wire
+        add_wave_divider "=== I2C BUS SIGNALS ==="
+        add_wave /tb_iot_sensor_controller/i2c_scl
+        add_wave /tb_iot_sensor_controller/i2c_sda
+        
+        add_wave_divider "=== I2C ARBITRATION ==="
+        add_wave /tb_iot_sensor_controller/dut/temp_i2c_req
+        add_wave /tb_iot_sensor_controller/dut/hum_i2c_req
+        add_wave /tb_iot_sensor_controller/dut/arb_state
+        add_wave /tb_iot_sensor_controller/dut/current_temp_transaction
+        add_wave /tb_iot_sensor_controller/dut/current_hum_transaction
+        add_wave /tb_iot_sensor_controller/dut/i2c_start
+        add_wave /tb_iot_sensor_controller/dut/i2c_slave_addr
+        add_wave /tb_iot_sensor_controller/dut/i2c_transaction_done
+        
+        add_wave_divider "=== SENSOR STATES ==="
+        add_wave /tb_iot_sensor_controller/dut/u_temp_sensor/current_state
+        add_wave /tb_iot_sensor_controller/dut/u_hum_sensor/current_state
+        add_wave /tb_iot_sensor_controller/dut/u_motion_sensor/current_state
+
+        add_wave_divider "=== SPI SIGNALS ==="
         add_wave /tb_iot_sensor_controller/spi_clk
         add_wave /tb_iot_sensor_controller/spi_mosi
         add_wave /tb_iot_sensor_controller/spi_miso
         add_wave /tb_iot_sensor_controller/spi_cs
         add_wave /tb_iot_sensor_controller/motion_int
 
-        add_wave_divider "=== STATUS SIGNALS ==="
+        add_wave_divider "=== DATA STATUS ==="
         add_wave /tb_iot_sensor_controller/temp_data_ready
         add_wave /tb_iot_sensor_controller/hum_data_ready
         add_wave /tb_iot_sensor_controller/motion_data_ready
         add_wave /tb_iot_sensor_controller/packet_sent
+        
+        add_wave_divider "=== SENSOR DATA ==="
+        add_wave -radix hex /tb_iot_sensor_controller/dut/temp_data
+        add_wave -radix hex /tb_iot_sensor_controller/dut/hum_data
+        add_wave -radix hex /tb_iot_sensor_controller/dut/motion_data
+
+        add_wave_divider "=== SERIAL TRANSMISSION ==="
         add_wave /tb_iot_sensor_controller/serial_tx
         add_wave /tb_iot_sensor_controller/serial_tx_busy
+        add_wave /tb_iot_sensor_controller/dut/packet_valid
+        add_wave /tb_iot_sensor_controller/dut/packet_ack
 
-        add_wave_divider "=== TEST CONTROL ==="
+        add_wave_divider "=== TEST MONITORING ==="
         add_wave /tb_iot_sensor_controller/test_count
         add_wave /tb_iot_sensor_controller/error_count
         add_wave /tb_iot_sensor_controller/packet_count
+        
+        add_wave_divider "=== I2C TESTBENCH MODEL ==="
+        add_wave /tb_iot_sensor_controller/i2c_state
+        add_wave /tb_iot_sensor_controller/sda_drive
+        add_wave /tb_iot_sensor_controller/sda_out
+        add_wave -radix hex /tb_iot_sensor_controller/data_to_send
 
-        puts "   Added system and interface signals"
+        puts "   ✅ Added comprehensive signal monitoring"
     }
 
     puts "🎉 INTEGRATION TEST COMPLETED SUCCESSFULLY!"
     puts ""
-    puts "📋 Test Results Summary:"
-    puts "   • System initialization: ✅ Complete"
-    puts "   • I2C temperature sensor: ✅ Active"
-    puts "   • I2C humidity sensor: ✅ Active"
-    puts "   • SPI motion sensor: ✅ Active"
-    puts "   • Serial packet transmission: ✅ Working"
-    puts "   • Power management: ✅ Functional"
+    puts "📋 Expected Waveform Behavior:"
+    puts "   • temp_data_ready: Should pulse every 500µs"
+    puts "   • hum_data_ready: Should pulse every 750µs" 
+    puts "   • motion_data_ready: Should pulse every 500ms"
+    puts "   • I2C SCL/SDA: Should show regular transactions"
+    puts "   • arb_state: Should alternate ARB_TEMP/ARB_HUM"
+    puts "   • packet_sent: Should pulse for each sensor data"
     puts ""
     puts "📊 Check the waveform viewer for detailed signal analysis"
-    puts "🔍 Look for test progress in the simulation log"
+    puts "🔍 Look for I2C arbitration and sensor state machines"
 
     return 0
 }
@@ -196,7 +226,6 @@ proc run_synthesis_check {} {
     return 0
 }
 
-# Main command processing
 if {$argc > 0} {
     set command [lindex $argv 0]
     puts "🎯 Command received: $command"

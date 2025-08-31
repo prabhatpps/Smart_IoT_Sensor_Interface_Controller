@@ -3,22 +3,30 @@
 # SW Build 6140274 on Wed May 21 22:58:25 MDT 2025
 # IP Build 6138677 on Thu May 22 03:10:11 MDT 2025
 # SharedData Build 6139179 on Tue May 20 17:58:58 MDT 2025
-# Start of session at: Sat Aug 30 01:27:24 2025
-# Process ID         : 17207
+# Start of session at: Sun Aug 31 18:03:16 2025
+# Process ID         : 6135
 # Current directory  : /home/prabhat/Work/Smart_IoT_Sensor_Interface_Controller/vivado_project
-# Command line       : vivado -mode batch -source ../scripts/create_project.tcl -log create_project.log
-# Log file           : /home/prabhat/Work/Smart_IoT_Sensor_Interface_Controller/vivado_project/create_project.log
+# Command line       : vivado iot_sensor_controller.xpr
+# Log file           : /home/prabhat/Work/Smart_IoT_Sensor_Interface_Controller/vivado_project/vivado.log
 # Journal file       : /home/prabhat/Work/Smart_IoT_Sensor_Interface_Controller/vivado_project/vivado.jou
 # Running On         : fedora
 # Platform           : Fedora
 # Operating System   : Fedora release 42 (Adams)
 # Processor Detail   : AMD Ryzen 7 5800H with Radeon Graphics
-# CPU Frequency      : 4188.235 MHz
+# CPU Frequency      : 4391.590 MHz
 # CPU Physical cores : 8
 # CPU Logical cores  : 16
 # Host memory        : 16120 MB
 # Swap memory        : 8589 MB
 # Total Virtual      : 24710 MB
-# Available Virtual  : 17442 MB
+# Available Virtual  : 20698 MB
 #-----------------------------------------------------------
-source ../scripts/create_project.tcl
+start_gui
+open_project iot_sensor_controller.xpr
+launch_simulation -simset [get_filesets integration_tests ]
+source tb_iot_sensor_controller.tcl
+update_compile_order -fileset sources_1
+update_compile_order -fileset sources_1
+close_sim
+launch_simulation -simset [get_filesets integration_tests ]
+launch_simulation -simset [get_filesets integration_tests ]
