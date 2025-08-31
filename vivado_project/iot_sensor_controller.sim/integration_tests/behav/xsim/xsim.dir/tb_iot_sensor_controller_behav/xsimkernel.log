@@ -1,7 +1,0 @@
-Running: xsim.dir/tb_iot_sensor_controller_behav/xsimk -simmode gui -wdb tb_iot_sensor_controller_behav.wdb -simrunnum 0 -socket 38065
-Design successfully loaded
-Design Loading Memory Usage: 401228 KB (Peak: 401228 KB)
-Design Loading CPU Usage: 820 ms
-Simulation completed
-Simulation Memory Usage: 483224 KB (Peak: 540496 KB)
-Simulation CPU Usage: 1260 ms
